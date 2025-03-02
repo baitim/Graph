@@ -31,7 +31,7 @@ for test_num in range(count_tests) :
             if vertex1 != vertex2 and not used[vertex1][vertex2]:
                 used[vertex1][vertex2] = used[vertex2][vertex1] = True
                 weight = random.randint(1, max_weight)
-                file.write(f"{vertex1 + 1} -- {vertex2 + 1} {weight}\n")
+                file.write(f"{vertex1 + 1} -- {vertex2 + 1}, {weight}\n")
                 break
 
     file.close()

@@ -2,7 +2,7 @@
 
 ## Description
 
- Implementation of the graph.
+ Implementation of the graph from TAOCP 7.1.2.6.S.
 
 ## How to integrate
  
