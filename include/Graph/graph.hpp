@@ -141,6 +141,33 @@ namespace graph {
                 func(v, std::forward<Args>(args)...);
         }
 
+        std::vector<int> get_bipartite() {
+            std::vector<int> colors(count_verts_, -1);
+            std::vector<int> q(count_verts_);
+            for (size_t v = 0; v < count_verts_; ++v) {
+                if (colors[v] == -1) {
+                    int h = 0, t = 0;
+                    q[t++] = v;
+                    colors[v] = 0;
+                    while (h < t) {
+                        int v = q[h++];
+                        for (int i = n_[v]; i != v; i = n_[i]) {
+                            int next = t_[i ^ 1] - 1;
+                            if (colors[next] == -1) {
+                                colors[next] = !colors[v];
+                                q[t++] = next;
+                            } else {
+                                if (colors[next] == colors[v])
+                                    throw error_t{str_red("Graph is not bipartite")};
+                            }
+                        }
+                    }
+                }
+            }
+
+            return colors;
+        }
+
         std::istream& read(std::istream& is) {
             count_edges_ = 0;
             count_verts_ = 0;
