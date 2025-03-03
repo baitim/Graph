@@ -14,6 +14,7 @@ namespace graph {
     class graph_t final {
         size_t count_verts_;
         size_t count_edges_;
+        bool is_verts_odd_;
 
         std::vector<int> a_;
         std::vector<int> t_;
@@ -141,31 +142,33 @@ namespace graph {
                 func(v, std::forward<Args>(args)...);
         }
 
-        std::vector<int> get_bipartite() {
+        std::tuple<bool, std::vector<int>> get_bipartite() {
             std::vector<int> colors(count_verts_, -1);
-            std::vector<int> q(count_verts_);
+            std::queue<int> q;
+
             for (size_t v = 0; v < count_verts_; ++v) {
                 if (colors[v] == -1) {
-                    int h = 0, t = 0;
-                    q[t++] = v;
+                    q.push(v);
                     colors[v] = 0;
-                    while (h < t) {
-                        int v = q[h++];
-                        for (int i = n_[v]; i != v; i = n_[i]) {
+
+                    while (!q.empty()) {
+                        size_t u = q.front();
+                        q.pop();
+
+                        for (size_t i = n_[u]; i != u; i = n_[i]) {
                             int next = t_[i ^ 1] - 1;
                             if (colors[next] == -1) {
-                                colors[next] = !colors[v];
-                                q[t++] = next;
-                            } else {
-                                if (colors[next] == colors[v])
-                                    throw error_t{str_red("Graph is not bipartite")};
+                                colors[next] = !colors[u];
+                                q.push(next);
+                            } else if (colors[next] == colors[u]) {
+                                return {false, {}};
                             }
                         }
                     }
                 }
             }
 
-            return colors;
+            return {true, colors};
         }
 
         std::istream& read(std::istream& is) {
@@ -175,7 +178,11 @@ namespace graph {
             std::vector<std::vector<std::pair<int, int>>> edges;
             while (read_edge(is, edge)) {
                 auto& [v1, v2, w] = edge;
+
                 count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
+                is_verts_odd_ = count_verts_ % 2;
+                count_verts_ += is_verts_odd_;
+
                 if (count_verts_ > edges.size())
                     edges.resize(count_verts_);
 
