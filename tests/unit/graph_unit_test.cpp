@@ -29,7 +29,7 @@ TEST(Graph_shuffle, cmp_ete_with_core) {
 
     for (unsigned i = 0; i < count_tests; ++i) {
         std::ifstream test_file(tests_str[i]);
-        graph::graph_t graph;
+        graph::graph_t<std::monostate, int> graph;
         test_file >> graph;
         const auto&[is_bipartite, colors] = graph.get_bipartite();
         test_file.close();

@@ -3,7 +3,7 @@
 int main() {
     try {
 
-        graph::graph_t graph;
+        graph::graph_t<std::monostate, int> graph;
         std::cin >> graph;
 
         const auto&[is_bipartite, colors] = graph.get_bipartite();
