@@ -234,7 +234,9 @@ namespace graph {
             count_verts_ = 0;
             std::vector<std::vector<std::pair<size_t, EdgeT>>> edges;
             for (auto edge : edges_) {
-                const auto& [v1, v2] = edge;
+                auto [v1, v2] = edge;
+                v1--;
+                v2--;
 
                 count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
                 is_verts_odd_ = count_verts_ % 2;
