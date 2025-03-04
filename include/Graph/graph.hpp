@@ -227,6 +227,72 @@ namespace graph {
         }
 
     public:
+        graph_t() {}
+
+        graph_t(std::initializer_list<std::tuple<size_t, size_t>> edges_) {
+            count_edges_ = 0;
+            count_verts_ = 0;
+            std::vector<std::vector<std::pair<size_t, EdgeT>>> edges;
+            for (auto edge : edges_) {
+                const auto& [v1, v2] = edge;
+
+                count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
+                is_verts_odd_ = count_verts_ % 2;
+                count_verts_ += is_verts_odd_;
+
+                if (count_verts_ > edges.size())
+                    edges.resize(count_verts_);
+
+                edges[v1].push_back({v2, {}});
+
+                count_edges_++;
+            }
+            
+            create(edges);
+        }
+
+        std::istream& read(std::istream& is) {
+            count_edges_ = 0;
+            count_verts_ = 0;
+            edge_t edge;
+            std::vector<std::vector<std::pair<size_t, EdgeT>>> edges;
+            while (read_edge(is, edge)) {
+                const auto& [v1, v2, w] = edge;
+
+                count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
+                is_verts_odd_ = count_verts_ % 2;
+                count_verts_ += is_verts_odd_;
+
+                if (count_verts_ > edges.size())
+                    edges.resize(count_verts_);
+
+                edges[v1].push_back({v2, w});
+
+                count_edges_++;
+            }
+            
+            create(edges);
+            return is;
+        }
+
+        std::ostream& print(std::ostream& os) const {
+            os << print_blue("graph\n");
+
+            os << print_blue("a:\t"); for (auto a : a_) { a.print(os); os << "\t"; } os << "\n";
+            os << print_blue("t:\t"); for (auto t : t_) { t.print(os); os << "\t"; } os << "\n";
+
+            os << print_blue("n:\t");
+            for (auto n : n_)
+                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(n) << "\t";
+            os << "\n";
+
+            os << print_blue("p:\t");
+            for (auto p : p_)
+                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(p) << "\t";
+
+            return os;
+        }
+
         template <typename Func, typename... Args>
         void dfs(size_t start, Func func, Args&&... args) const {
             start--;
@@ -311,48 +377,6 @@ namespace graph {
             }
 
             return {true, colors};
-        }
-
-        std::istream& read(std::istream& is) {
-            count_edges_ = 0;
-            count_verts_ = 0;
-            edge_t edge;
-            std::vector<std::vector<std::pair<size_t, EdgeT>>> edges;
-            while (read_edge(is, edge)) {
-                auto& [v1, v2, w] = edge;
-
-            count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
-                is_verts_odd_ = count_verts_ % 2;
-                count_verts_ += is_verts_odd_;
-
-                if (count_verts_ > edges.size())
-                    edges.resize(count_verts_);
-
-                edges[v1].push_back({v2, w});
-
-                count_edges_++;
-            }
-            
-            create(edges);
-            return is;
-        }
-
-        std::ostream& print(std::ostream& os) const {
-            os << print_blue("graph\n");
-
-            os << print_blue("a:\t"); for (auto a : a_) { a.print(os); os << "\t"; } os << "\n";
-            os << print_blue("t:\t"); for (auto t : t_) { t.print(os); os << "\t"; } os << "\n";
-
-            os << print_blue("n:\t");
-            for (auto n : n_)
-                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(n) << "\t";
-            os << "\n";
-
-            os << print_blue("p:\t");
-            for (auto p : p_)
-                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(p) << "\t";
-
-            return os;
         }
     };
 
