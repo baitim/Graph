@@ -201,7 +201,7 @@ namespace graph {
             std::vector<size_t> curr_idx(count_verts_);
             iota(curr_idx.begin(), curr_idx.end(), 0);
 
-            for (size_t i = 0; i < count_verts_; ++i) {
+            for (auto i : std::views::iota(0UL, count_verts_)) {
                 for (auto edge : edges[i]) {
                     size_t v1 = i;
                     size_t v2 = edge.first;
@@ -220,7 +220,7 @@ namespace graph {
                 }
             }
 
-            for (size_t i = 0; i < count_verts_; ++i) {
+            for (auto i : std::views::iota(0UL, count_verts_)) {
                 n_[curr_idx[i]] = i;
                 p_[i] = curr_idx[i];
             }
@@ -288,7 +288,7 @@ namespace graph {
             std::vector<int> colors(count_verts_, -1);
             std::queue<size_t> q;
 
-            for (size_t v = 0; v < count_verts_; ++v) {
+            for (auto v : std::views::iota(0UL, count_verts_)) {
                 if (colors[v] == -1) {
                     q.push(v);
                     colors[v] = 0;
