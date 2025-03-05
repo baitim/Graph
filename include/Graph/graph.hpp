@@ -383,12 +383,12 @@ namespace graph {
     };
 
     template <typename VertexT = std::monostate, typename EdgeT = std::monostate>
-    std::istream& operator>>(std::istream& is, graph_t<VertexT, EdgeT>& graph) {
+    inline std::istream& operator>>(std::istream& is, graph_t<VertexT, EdgeT>& graph) {
         return graph.read(is);
     }
 
     template <typename VertexT = std::monostate, typename EdgeT = std::monostate>
-    std::ostream& operator<<(std::ostream& os, const graph_t<VertexT, EdgeT>& graph) {
+    inline std::ostream& operator<<(std::ostream& os, const graph_t<VertexT, EdgeT>& graph) {
         return graph.print(os);
     }
 }
