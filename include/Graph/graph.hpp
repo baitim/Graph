@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Graph/common.hpp"
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <numeric>
@@ -41,11 +42,11 @@ namespace graph {
             }
 
             std::ostream& print(std::ostream& os) const {
-                os << print_lcyan("(" << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << index);
+                os << print_lcyan('(' << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << index);
                 if constexpr(!std::is_same_v<VertexT, std::monostate> &&
                              has_output_operator<VertexT>::value)
                     os << print_lcyan(", " << data);
-                os << print_lcyan(")");
+                os << print_lcyan(')');
                 return os;
             }
         };
@@ -59,11 +60,11 @@ namespace graph {
             edge_node_t(size_t index_, const EdgeT& data_) : index(index_), data(data_) {}
 
             std::ostream& print(std::ostream& os) const {
-                os << print_lcyan("(" << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << index + 1);
+                os << print_lcyan('(' << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << index + 1);
                 if constexpr(!std::is_same_v<EdgeT, std::monostate> &&
                              has_output_operator<EdgeT>::value)
                     os << print_lcyan(", " << data);
-                os << print_lcyan(")");
+                os << print_lcyan(')');
                 return os;
             }
         };
@@ -226,6 +227,31 @@ namespace graph {
             }
         }
 
+        std::vector<int> get_odd_cycle(int u, int v, const std::vector<int>& parents) const {
+            std::vector<bool> visited(count_verts_, false);
+            std::vector<int> cycle;
+
+            for (int i = u; i != -1; i = parents[i])
+                visited[i] = true;
+
+            int lsa;
+            for (int i = v; i != -1; i = parents[i]) {
+                cycle.push_back(i + 1);
+                if (visited[i]) {
+                    lsa = i;
+                    break;
+                }
+            }
+
+            std::reverse(cycle.begin(), cycle.end());
+            while (u != lsa) {
+                cycle.push_back(u + 1);
+                u = parents[u];
+            }
+
+            return cycle;
+        }
+
     public:
         graph_t() {}
 
@@ -280,17 +306,17 @@ namespace graph {
         std::ostream& print(std::ostream& os) const {
             os << print_blue("graph\n");
 
-            os << print_blue("a:\t"); for (auto a : a_) { a.print(os); os << "\t"; } os << "\n";
-            os << print_blue("t:\t"); for (auto t : t_) { t.print(os); os << "\t"; } os << "\n";
+            os << print_blue("a:\t"); for (auto a : a_) { a.print(os); os << '\t'; } os << '\n';
+            os << print_blue("t:\t"); for (auto t : t_) { t.print(os); os << '\t'; } os << '\n';
 
             os << print_blue("n:\t");
             for (auto n : n_)
-                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(n) << "\t";
-            os << "\n";
+                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(n) << '\t';
+            os << '\n';
 
             os << print_blue("p:\t");
             for (auto p : p_)
-                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(p) << "\t";
+                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(p) << '\t';
 
             return os;
         }
@@ -352,15 +378,16 @@ namespace graph {
                 func(v, std::forward<Args>(args)...);
         }
 
-        std::tuple<bool, std::vector<int>> get_bipartite() const {
-            std::vector<int> colors(count_verts_, -1);
+        std::tuple<bool, std::vector<int>, std::vector<int>> get_bipartite() const {
+            std::vector<int> colors (count_verts_, -1);
+            std::vector<int> parents(count_verts_, -1);
             std::queue<size_t> q;
-
+        
             for (auto v : std::views::iota(0UL, count_verts_)) {
                 if (colors[v] == -1) {
                     q.push(v);
                     colors[v] = 0;
-
+        
                     while (!q.empty()) {
                         size_t u = q.front();
                         q.pop();
@@ -369,16 +396,17 @@ namespace graph {
                             size_t next = i.second.index;
                             if (colors[next] == -1) {
                                 colors[next] = !colors[u];
+                                parents[next] = u;
                                 q.push(next);
                             } else if (colors[next] == colors[u]) {
-                                return {false, {}};
+                                return {false, {}, get_odd_cycle(u, next, parents)};
                             }
                         }
                     }
                 }
             }
-
-            return {true, colors};
+        
+            return {true, colors, {}};
         }
     };
 

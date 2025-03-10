@@ -10,22 +10,26 @@ target_sources(graph
     BASE_DIRS ${INCLUDE_DIR}
 )
 
-add_library(Graph graph.cpp)
-target_include_directories(Graph PUBLIC
-    $<BUILD_INTERFACE:${INCLUDE_DIR}>
-    $<INSTALL_INTERFACE:include>
-)
+if(DEFINED ENV{CONAN_PACKAGE})
+    include(GNUInstallDirs)
 
-install(TARGETS Graph EXPORT GraphTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include
-)
+    add_library(Graph graph.cpp)
+    target_include_directories(Graph PUBLIC
+        $<BUILD_INTERFACE:${INCLUDE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
 
-install(DIRECTORY ${INCLUDE_DIR}/Graph DESTINATION include)
+    install(TARGETS Graph EXPORT GraphTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 
-install(EXPORT GraphTargets
-    FILE GraphConfig.cmake
-    DESTINATION lib/cmake/Graph
-)
+    install(DIRECTORY ${INCLUDE_DIR}/Graph DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+    install(EXPORT GraphTargets
+        FILE GraphConfig.cmake
+        DESTINATION lib/cmake/Graph
+    )
+endif()

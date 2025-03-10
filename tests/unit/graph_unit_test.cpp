@@ -17,7 +17,7 @@ std::vector<std::string> get_sorted_files(std::filesystem::path path) {
 
 TEST(Graph_shuffle, cmp_ete_with_core) {
     std::string file{__FILE__};
-    std::filesystem::path dir = file.substr(0, file.rfind("/"));
+    std::filesystem::path dir = file.substr(0, file.rfind('/'));
     dir = dir / "../end_to_end";
 
     std::filesystem::path answers_path = dir / "answers_core/";
@@ -31,18 +31,20 @@ TEST(Graph_shuffle, cmp_ete_with_core) {
         std::ifstream test_file(tests_str[i]);
         graph::graph_t<std::monostate, int> graph;
         test_file >> graph;
-        const auto&[is_bipartite, colors] = graph.get_bipartite();
+        const auto&[is_bipartite, colors, cycle] = graph.get_bipartite();
         test_file.close();
 
         std::ifstream answer_file(answers_str[i]);
-        std::string ans;
-        getline(answer_file, ans);
+        std::string ans_is_bipartite;
+        std::getline(answer_file, ans_is_bipartite);
         answer_file.close();
 
-        EXPECT_EQ(
-            is_bipartite ? "graph is bipartite" : "graph is not bipartite",
-            ans
-        ) << "in test : " << i + 1 << "\n";
+        if (is_bipartite) {
+            EXPECT_EQ("graph is bipartite", ans_is_bipartite) << "in test : " << i + 1 << '\n';
+        } else {
+            EXPECT_EQ("graph is not bipartite", ans_is_bipartite) << "in test : " << i + 1 << '\n';
+            EXPECT_EQ(cycle.size() % 2, 1) << "in test : " << i + 1 << '\n';
+        }
     }
 }
 
@@ -113,6 +115,24 @@ TEST(Graph_main, test_bipartite_false) {
     EXPECT_EQ(std::get<0>(graph4.get_bipartite()), false);
     EXPECT_EQ(std::get<0>(graph6.get_bipartite()), false);
     EXPECT_EQ(std::get<0>(graph7.get_bipartite()), false);
+
+    EXPECT_EQ(std::get<2>(graph1.get_bipartite()).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(graph2.get_bipartite()).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(graph3.get_bipartite()).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(graph4.get_bipartite()).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(graph6.get_bipartite()).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(graph7.get_bipartite()).size() % 2, 1);
+
+}
+
+TEST(Graph_main, test_bipartite_cycle) {
+    graph::graph_t graph1{{1, 2}, {1, 4}, {2, 3}, {3, 6}, {4, 5}, {4, 7}, {5, 6}, {6, 9}, {7, 8}, {8, 9},
+                          {5, 9}};
+    graph::graph_t graph2{{1, 2}, {1, 4}, {2, 3}, {3, 6}, {4, 5}, {4, 7}, {5, 6}, {6, 9}, {7, 8}, {8, 9},
+                          {2, 4}};
+
+    EXPECT_EQ(std::get<2>(graph1.get_bipartite()).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(graph2.get_bipartite()).size() % 2, 1);
 }
 
 int main(int argc, char **argv) {
