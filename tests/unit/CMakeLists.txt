@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.30)
 project(unit)
 
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
