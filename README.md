@@ -36,7 +36,7 @@
     - End to end & Unit<br>
         <code>ctest --test-dir build/Release --output-on-failure</code>
 
-<p align="center"><img src="https://github.com/baitim/Graph/blob/main/images/cat.gif" width="40%"></p>
+<p align="center"><img src="https://github.com/baitim/Graph/blob/main/images/pig.gif" width="40%"></p>
 
 ## Support
 **This project is created by [baitim](https://t.me/bai_tim)**
