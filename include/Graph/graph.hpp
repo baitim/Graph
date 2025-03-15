@@ -16,12 +16,10 @@ namespace graph {
     template <typename VertexT = std::monostate, typename EdgeT = std::monostate>
     class graph_t final {
         static const size_t LENGTH_OF_OUTPUT_NUMBERS = 4;
-        static const bool   START_VALUE_OF_USED = false;
 
         size_t count_verts_;
         size_t count_edges_;
         bool   is_verts_odd_;
-        bool   is_used_ = START_VALUE_OF_USED;
 
         struct vertex_node_t;
         struct edge_node_t;
@@ -35,7 +33,6 @@ namespace graph {
     private:
         struct vertex_node_t final {
             size_t index;
-            bool   used = START_VALUE_OF_USED;
             VertexT data;
 
         public:
@@ -255,10 +252,6 @@ namespace graph {
             return cycle;
         }
 
-        void update_is_used() noexcept {
-            is_used_ == !is_used_;
-        }
-
     public:
         graph_t() {}
 
@@ -342,11 +335,12 @@ namespace graph {
         template <typename Func, typename... Args>
         void dfs(size_t start, Func func, Args&&... args) const {
             start--;
-            std::stack<size_t> s;
+            std::vector<bool> used(count_verts_, false);
             std::vector<size_t> order;
+            std::stack<size_t> s;
             order.reserve(count_verts_);
 
-            vertexes_[start].used = is_used_;
+            used[start] = true;
             s.push(start);
             while (!s.empty()) {
                 size_t v = s.top();
@@ -355,10 +349,8 @@ namespace graph {
 
                 for (auto i : range_traversal_neighbors(*this, v)) {
                     size_t next = i.second.index;
-                    bool& vertes_used = vertexes_[next].used;
-
-                    if (vertes_used != is_used_) {
-                        vertes_used  = is_used_;
+                    if (!used[next]) {
+                        used[next] = true;
                         s.push(next);
                     }
                 }
@@ -366,17 +358,17 @@ namespace graph {
 
             for (auto v : std::views::reverse(order))
                 func(v, std::forward<Args>(args)...);
-
-            update_is_used();
         }
 
         template <typename Func, typename... Args>
         void bfs(size_t start, Func func, Args&&... args) const {
             start--;
+            
+            std::vector<bool> used(count_verts_, false);
             std::vector<size_t> order;
             std::queue<size_t> q;
 
-            vertexes_[start].used = true;
+            used[start] = true;
             q.push(start);
 
             while (!q.empty()) {
@@ -386,10 +378,8 @@ namespace graph {
 
                 for (auto i : range_traversal_neighbors(*this, v)) {
                     size_t next = i.second.index;
-                    bool& vertes_used = vertexes_[next].used;
-
-                    if (vertes_used != is_used_) {
-                        vertes_used  = is_used_;
+                    if (!used[next]) {
+                        used[next] = true;
                         q.push(next);
                     }
                 }
@@ -397,8 +387,6 @@ namespace graph {
 
             for (auto v : order)
                 func(v, std::forward<Args>(args)...);
-
-            update_is_used();
         }
 
         std::tuple<bool, std::vector<int>, std::vector<int>> get_bipartite() const {
