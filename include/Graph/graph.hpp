@@ -13,26 +13,29 @@
 #include <vector>
 
 namespace graph {
-    static const size_t LENGTH_OF_OUTPUT_NUMBERS = 4;
-
     template <typename VertexT = std::monostate, typename EdgeT = std::monostate>
     class graph_t final {
+        static const size_t LENGTH_OF_OUTPUT_NUMBERS = 4;
+        static const bool   START_VALUE_OF_USED = false;
+
         size_t count_verts_;
         size_t count_edges_;
-        bool is_verts_odd_;
+        bool   is_verts_odd_;
+        bool   is_used_ = START_VALUE_OF_USED;
 
         struct vertex_node_t;
         struct edge_node_t;
-        std::vector<vertex_node_t> a_;
-        std::vector<edge_node_t> t_;
-        std::vector<size_t> n_;
-        std::vector<size_t> p_;
+        std::vector<vertex_node_t> vertexes_;
+        std::vector<edge_node_t> edges_;
+        std::vector<size_t> next_;
+        std::vector<size_t> prev_;
 
         using edge_t = std::tuple<size_t, size_t, EdgeT>;
 
     private:
         struct vertex_node_t final {
             size_t index;
+            bool   used = START_VALUE_OF_USED;
             VertexT data;
 
         public:
@@ -105,16 +108,16 @@ namespace graph {
 
             reference operator*() {
                 size_t t_index = index_ - graph_.count_verts_;
-                size_t vertex = graph_.t_[t_index].index;
+                size_t vertex = graph_.edges_[t_index].index;
                 size_t edge = t_index ^ 1;
-                return {graph_.a_[vertex], graph_.t_[edge]};
+                return {graph_.vertexes_[vertex], graph_.edges_[edge]};
             }
 
             const reference operator*() const {
                 size_t t_index = index_ - graph_.count_verts_;
-                size_t vertex = graph_.t_[t_index].index;
+                size_t vertex = graph_.edges_[t_index].index;
                 size_t edge = t_index ^ 1;
-                return {graph_.a_[vertex], graph_.t_[edge]};
+                return {graph_.vertexes_[vertex], graph_.edges_[edge]};
             }
 
             pointer operator->()             noexcept { return **this; }
@@ -129,12 +132,12 @@ namespace graph {
             }
 
             internal_iterator_t& operator++() noexcept {
-                index_ = graph_.n_[index_];
+                index_ = graph_.next_[index_];
                 return *this;
             }
 
             internal_iterator_t& operator--() noexcept {
-                index_ = graph_.p_[index_];
+                index_ = graph_.prev_[index_];
                 return *this;
             }
         };
@@ -191,12 +194,12 @@ namespace graph {
         void create(const std::vector<std::vector<std::pair<size_t, EdgeT>>>& edges) {
             size_t summary_count = count_verts_ + 2 * count_edges_;
 
-            a_.resize(count_verts_);
-            t_.resize(2 * count_edges_);
-            n_.resize(summary_count);
-            p_.resize(summary_count);
+            vertexes_.resize(count_verts_);
+            edges_.resize(2 * count_edges_);
+            next_.resize(summary_count);
+            prev_.resize(summary_count);
 
-            iota(a_.begin(), a_.end(), 0);
+            iota(vertexes_.begin(), vertexes_.end(), 0);
 
             size_t idx = count_verts_;
             std::vector<size_t> curr_idx(count_verts_);
@@ -208,22 +211,22 @@ namespace graph {
                     size_t v2 = edge.first;
                     EdgeT edge_data = edge.second;
 
-                    t_[idx - count_verts_]     = edge_node_t{v1, edge_data};
-                    t_[idx - count_verts_ + 1] = edge_node_t{v2, edge_data};
+                    edges_[idx - count_verts_]     = edge_node_t{v1, edge_data};
+                    edges_[idx - count_verts_ + 1] = edge_node_t{v2, edge_data};
 
-                    n_[curr_idx[v1]] = idx;
-                    n_[curr_idx[v2]] = idx + 1;
+                    next_[curr_idx[v1]] = idx;
+                    next_[curr_idx[v2]] = idx + 1;
 
-                    p_[curr_idx[v1]] = std::exchange(curr_idx[v1], idx);
-                    p_[curr_idx[v2]] = std::exchange(curr_idx[v2], idx + 1);
+                    prev_[curr_idx[v1]] = std::exchange(curr_idx[v1], idx);
+                    prev_[curr_idx[v2]] = std::exchange(curr_idx[v2], idx + 1);
 
                     idx += 2;
                 }
             }
 
             for (auto i : std::views::iota(0UL, count_verts_)) {
-                n_[curr_idx[i]] = i;
-                p_[i] = curr_idx[i];
+                next_[curr_idx[i]] = i;
+                prev_[i] = curr_idx[i];
             }
         }
 
@@ -234,7 +237,7 @@ namespace graph {
             for (int i = u; i != -1; i = parents[i])
                 visited[i] = true;
 
-            int lsa;
+            int lsa = -1;
             for (int i = v; i != -1; i = parents[i]) {
                 cycle.push_back(i + 1);
                 if (visited[i]) {
@@ -250,6 +253,10 @@ namespace graph {
             }
 
             return cycle;
+        }
+
+        void update_is_used() noexcept {
+            is_used_ == !is_used_;
         }
 
     public:
@@ -306,17 +313,28 @@ namespace graph {
         std::ostream& print(std::ostream& os) const {
             os << print_blue("graph\n");
 
-            os << print_blue("a:\t"); for (auto a : a_) { a.print(os); os << '\t'; } os << '\n';
-            os << print_blue("t:\t"); for (auto t : t_) { t.print(os); os << '\t'; } os << '\n';
+            os << print_blue("vertexes:\t");
+            for (auto vertex : vertexes_) {
+                vertex.print(os);
+                os << '\t';
+            }
+            os << '\n';
+
+            os << print_blue("edges:\t");
+            for (auto edge : edges_) {
+                edge.print(os);
+                os << '\t';
+            }
+            os << '\n';
 
             os << print_blue("n:\t");
-            for (auto n : n_)
-                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(n) << '\t';
+            for (auto next : next_)
+                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(next) << '\t';
             os << '\n';
 
             os << print_blue("p:\t");
-            for (auto p : p_)
-                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(p) << '\t';
+            for (auto prev : prev_)
+                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(prev) << '\t';
 
             return os;
         }
@@ -325,11 +343,10 @@ namespace graph {
         void dfs(size_t start, Func func, Args&&... args) const {
             start--;
             std::stack<size_t> s;
-            std::vector<bool> used(count_verts_, false);
             std::vector<size_t> order;
             order.reserve(count_verts_);
 
-            used[start] = true;
+            vertexes_[start].used = is_used_;
             s.push(start);
             while (!s.empty()) {
                 size_t v = s.top();
@@ -338,8 +355,10 @@ namespace graph {
 
                 for (auto i : range_traversal_neighbors(*this, v)) {
                     size_t next = i.second.index;
-                    if (!used[next]) {
-                        used[next] = true;
+                    bool& vertes_used = vertexes_[next].used;
+
+                    if (vertes_used != is_used_) {
+                        vertes_used  = is_used_;
                         s.push(next);
                     }
                 }
@@ -347,17 +366,17 @@ namespace graph {
 
             for (auto v : std::views::reverse(order))
                 func(v, std::forward<Args>(args)...);
+
+            update_is_used();
         }
 
         template <typename Func, typename... Args>
         void bfs(size_t start, Func func, Args&&... args) const {
             start--;
-            
-            std::vector<bool> used(count_verts_, false);
             std::vector<size_t> order;
             std::queue<size_t> q;
 
-            used[start] = true;
+            vertexes_[start].used = true;
             q.push(start);
 
             while (!q.empty()) {
@@ -367,8 +386,10 @@ namespace graph {
 
                 for (auto i : range_traversal_neighbors(*this, v)) {
                     size_t next = i.second.index;
-                    if (!used[next]) {
-                        used[next] = true;
+                    bool& vertes_used = vertexes_[next].used;
+
+                    if (vertes_used != is_used_) {
+                        vertes_used  = is_used_;
                         q.push(next);
                     }
                 }
@@ -376,6 +397,8 @@ namespace graph {
 
             for (auto v : order)
                 func(v, std::forward<Args>(args)...);
+
+            update_is_used();
         }
 
         std::tuple<bool, std::vector<int>, std::vector<int>> get_bipartite() const {
