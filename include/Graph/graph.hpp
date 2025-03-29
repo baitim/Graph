@@ -165,21 +165,27 @@ namespace graph {
 
     private:
         static std::istream& read_edge(std::istream& is, edge_t& edge) {
-            char dummy;
-            int v1_, v2_;
-            EdgeT w_;
-            is >> v1_ >> std::ws >> dummy >> dummy >> std::ws >> v2_;
+            is >> std::ws;
+            if (is.eof())
+                return is;
             
-            if constexpr(!std::is_same_v<EdgeT, std::monostate> &&
-                         has_input_operator<EdgeT>::value)
-                is >> dummy >> std::ws >> w_;
+            std::string dashes;
+            char comma;
+            int v1_, v2_;
+            is >> v1_ >> dashes >> v2_;
+            if (!is.good()) throw error_t{"Invalid edge indexes"};
+            if (v1_ <= 0)   throw error_t{"Invalid vertex index: <= 0"};
+            if (v2_ <= 0)   throw error_t{"Invalid vertex index: <= 0"};
+            if (dashes != "--")
+                throw error_t{"Invalid input: expected dashes between vertex indexes, read: " + dashes};
 
-            if (!is.good() && !is.eof())
-                throw error_t{str_red("Invalid edge")};
-            if (v1_ <= 0 && !is.eof())
-                throw error_t{str_red("Vertex(1, src) index <= 0")};
-            if (v2_ <= 0 && !is.eof())
-                throw error_t{str_red("Vertex(2, dst) index <= 0")};
+            EdgeT w_;
+            if constexpr(!std::is_same_v<EdgeT, std::monostate> &&
+                         has_input_operator<EdgeT>::value) {
+                is >> comma >> w_;
+                if (!is.good())   throw error_t{"Invalid edge info"};
+                if (comma != ',') throw error_t{"Invalid input: expected comma, read: " + comma};
+            }
 
             auto& [v1, v2, w] = edge;
             v1 = static_cast<size_t>(v1_ - 1);
