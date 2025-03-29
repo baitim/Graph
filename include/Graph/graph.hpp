@@ -234,6 +234,9 @@ namespace graph {
         }
 
         std::vector<int> get_odd_cycle(int u, int v, const std::vector<int>& parents) const {
+            if (u == v)
+                return std::vector(3, u);
+
             std::vector<bool> visited(count_verts_, false);
             std::vector<int> cycle;
 

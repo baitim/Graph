@@ -135,6 +135,12 @@ TEST(Graph_main, test_bipartite_cycle) {
     EXPECT_EQ(std::get<2>(graph2.get_bipartite()).size() % 2, 1);
 }
 
+TEST(Graph_main, test_cycle_self_enclosed_vertex) {
+    graph::graph_t graph1{{1, 1}};
+
+    EXPECT_EQ(std::get<2>(graph1.get_bipartite()).size(), 3);
+}
+
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
