@@ -2,6 +2,7 @@
 
 #include "Graph/common.hpp"
 #include <algorithm>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <numeric>
@@ -15,14 +16,14 @@
 namespace graph {
     template <typename VertexT = std::monostate, typename EdgeT = std::monostate>
     class graph_t final {
-        static const size_t LENGTH_OF_OUTPUT_NUMBERS = 4;
+        static constexpr size_t LENGTH_OF_OUTPUT_NUMBERS = 4;
 
-        size_t count_verts_;
-        size_t count_edges_;
-        bool   is_verts_odd_;
+        size_t count_verts_ = 0;
+        size_t count_edges_ = 0;
 
         struct vertex_node_t;
         struct edge_node_t;
+
         std::vector<vertex_node_t> vertexes_;
         std::vector<edge_node_t> edges_;
         std::vector<size_t> next_;
@@ -36,9 +37,10 @@ namespace graph {
             VertexT data;
 
         public:
-            vertex_node_t& operator=(size_t new_index) {
+            vertex_node_t() = default;
+
+            vertex_node_t(size_t new_index) {
                 index = new_index;
-                return *this;
             }
 
             std::ostream& print(std::ostream& os) const {
@@ -69,106 +71,114 @@ namespace graph {
             }
         };
 
-        template <typename GraphT>
+        template <bool IsConst>
         class internal_iterator_t final {
-            using vertex_node_t = GraphT::vertex_node_t;
-            using edge_node_t   = GraphT::edge_node_t;
-
             template <typename ReferenceT>
             struct arrow_proxy final {
                 ReferenceT reference;
-            
+
             public:
-                arrow_proxy(ReferenceT& reference_) : reference(reference_) {}
+                arrow_proxy(      ReferenceT& reference_) : reference(reference_) {}
                 arrow_proxy(const ReferenceT& reference_) : reference(reference_) {}
-                ReferenceT *operator->() { return &reference; }
+                      ReferenceT *operator->()       { return &reference; }
                 const ReferenceT *operator->() const { return &reference; }
             };
 
+        private:
+            using graph_type       = std::conditional_t<IsConst, const graph_t,        graph_t>;
+            using vertex_reference = std::conditional_t<IsConst, const vertex_node_t&, vertex_node_t&>;
+            using edge_reference   = std::conditional_t<IsConst, const edge_node_t&,   edge_node_t&>;
+
             using iterator_category = std::bidirectional_iterator_tag;
             using value_type        = std::pair<vertex_node_t,  edge_node_t>;
-            using reference = std::pair<
-                std::conditional_t<std::is_const_v<GraphT>, const vertex_node_t&, vertex_node_t&>,
-                std::conditional_t<std::is_const_v<GraphT>, const edge_node_t&,   edge_node_t&>
-            >;
+            using reference         = std::pair<vertex_reference, edge_reference>;
             using pointer           = arrow_proxy<reference>;
             using difference_type   = std::ptrdiff_t;
 
-            GraphT& graph_;
+            graph_type* graph_;
             size_t index_;
 
+        private:
+            std::tuple<size_t, size_t> get_current_position() const {
+                size_t t_index = index_ - graph_->count_verts_;
+                size_t vertex = graph_->edges_[t_index].index;
+                size_t edge = t_index ^ 1;
+                return {vertex, edge};
+            }
+
         public:
-            internal_iterator_t(GraphT& graph, size_t index)
-            : graph_(graph), index_(index) {}
+            internal_iterator_t(graph_type& graph, size_t index)
+            : graph_(&graph), index_(index) {}
 
             size_t index() const noexcept { return index_; }
 
             reference operator*() {
-                size_t t_index = index_ - graph_.count_verts_;
-                size_t vertex = graph_.edges_[t_index].index;
-                size_t edge = t_index ^ 1;
-                return {graph_.vertexes_[vertex], graph_.edges_[edge]};
+                auto&& [vertex, edge] = get_current_position();
+                return {graph_->vertexes_[vertex], graph_->edges_[edge]};
             }
 
             const reference operator*() const {
-                size_t t_index = index_ - graph_.count_verts_;
-                size_t vertex = graph_.edges_[t_index].index;
-                size_t edge = t_index ^ 1;
-                return {graph_.vertexes_[vertex], graph_.edges_[edge]};
+                auto&& [vertex, edge] = get_current_position();
+                return {graph_->vertexes_[vertex], graph_->edges_[edge]};
             }
 
-            pointer operator->()             noexcept { return **this; }
+                  pointer operator->()       noexcept { return **this; }
             const pointer operator->() const noexcept { return **this; }
 
-            bool operator==(const internal_iterator_t& rhs) const noexcept {
-                return (index_ == rhs.index_);
+            bool operator==(const internal_iterator_t& other) const noexcept {
+                return ((graph_ == other.graph_) && (index_ == other.index_));
             }
 
-            bool operator!=(const internal_iterator_t& rhs) const noexcept {
-                return !(index_ == rhs.index_);
+            bool operator!=(const internal_iterator_t& other) const noexcept {
+                return !(*this == other);
             }
 
             internal_iterator_t& operator++() noexcept {
-                index_ = graph_.next_[index_];
+                index_ = graph_->next_[index_];
                 return *this;
             }
 
             internal_iterator_t& operator--() noexcept {
-                index_ = graph_.prev_[index_];
+                index_ = graph_->prev_[index_];
                 return *this;
             }
         };
 
-        template <typename GraphT>
-        class range_traversal_neighbors final {
-            GraphT& graph_;
-            internal_iterator_t<GraphT> iterator_;
+        using       iterator_t = internal_iterator_t<false>;
+        using const_iterator_t = internal_iterator_t<true>;
+
+        template <bool IsConst>
+        class internal_range_children_t final {
+            using graph_type    = std::conditional_t<IsConst, const graph_t,    graph_t>;
+            using iterator_type = std::conditional_t<IsConst, const_iterator_t, iterator_t>;
+
+            graph_type* graph_;
+            size_t start_index_;
+
+        private:
+            size_t get_end_index() const {
+                if (start_index_ >= graph_->count_verts_)
+                    return graph_->vertexes_[start_index_].index;
+                return start_index_;
+            }
 
         public:
-            template <typename... ArgsT>
-            range_traversal_neighbors(GraphT& graph, ArgsT&&... args)
-            : graph_(graph), iterator_(graph, std::forward<ArgsT>(args)...) {
-                ++iterator_;
-            }
+            internal_range_children_t(graph_type& graph, size_t start_index)
+            : graph_(&graph), start_index_(start_index) {}
 
-            internal_iterator_t<GraphT> begin() const {
-                return iterator_;
-            }
-
-            internal_iterator_t<GraphT> end() const {
-                size_t index = iterator_.index();
-                if (index >= graph_.count_verts_)
-                    index = iterator_->first.index;
-                return {graph_, index};
-            }
+            iterator_type begin() const { return ++iterator_type{*graph_, start_index_}; }
+            iterator_type end()   const { return   iterator_type{*graph_, get_end_index()}; }
         };
+
+        using       range_children_t = internal_range_children_t<false>;
+        using const_range_children_t = internal_range_children_t<true>;
 
     private:
         static std::istream& read_edge(std::istream& is, edge_t& edge) {
             is >> std::ws;
             if (is.eof())
                 return is;
-            
+
             std::string dashes;
             char comma;
             int v1_, v2_;
@@ -233,81 +243,43 @@ namespace graph {
             }
         }
 
-        std::vector<int> get_odd_cycle(int u, int v, const std::vector<int>& parents) const {
-            if (u == v)
-                return std::vector(3, u);
-
-            std::vector<bool> visited(count_verts_, false);
-            std::vector<int> cycle;
-
-            for (int i = u; i != -1; i = parents[i])
-                visited[i] = true;
-
-            int lsa = -1;
-            for (int i = v; i != -1; i = parents[i]) {
-                cycle.push_back(i + 1);
-                if (visited[i]) {
-                    lsa = i;
-                    break;
-                }
-            }
-
-            std::reverse(cycle.begin(), cycle.end());
-            while (u != lsa) {
-                cycle.push_back(u + 1);
-                u = parents[u];
-            }
-
-            return cycle;
-        }
-
     public:
         graph_t() {}
 
         graph_t(std::initializer_list<std::tuple<size_t, size_t>> edges_) {
-            count_edges_ = 0;
-            count_verts_ = 0;
             std::vector<std::vector<std::pair<size_t, EdgeT>>> edges;
             for (auto edge : edges_) {
                 auto [v1, v2] = edge;
-                v1--;
-                v2--;
+                v1--; v2--;
 
                 count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
-                is_verts_odd_ = count_verts_ % 2;
-                count_verts_ += is_verts_odd_;
-
-                if (count_verts_ > edges.size())
-                    edges.resize(count_verts_);
-
+                edges.resize(count_verts_);
                 edges[v1].push_back({v2, {}});
-
-                count_edges_++;
             }
-            
+
+            count_edges_  = edges_.size();
+            count_verts_ += count_verts_ % 2;
+            edges.resize(count_verts_);
             create(edges);
         }
 
         std::istream& read(std::istream& is) {
-            count_edges_ = 0;
             count_verts_ = 0;
+            count_edges_ = 0;
+
             edge_t edge;
             std::vector<std::vector<std::pair<size_t, EdgeT>>> edges;
             while (read_edge(is, edge)) {
                 const auto& [v1, v2, w] = edge;
 
                 count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
-                is_verts_odd_ = count_verts_ % 2;
-                count_verts_ += is_verts_odd_;
-
-                if (count_verts_ > edges.size())
-                    edges.resize(count_verts_);
-
+                edges.resize(count_verts_);
                 edges[v1].push_back({v2, w});
-
                 count_edges_++;
             }
-            
+
+            count_verts_ += count_verts_ % 2;
+            edges.resize(count_verts_);
             create(edges);
             return is;
         }
@@ -341,94 +313,133 @@ namespace graph {
             return os;
         }
 
-        template <typename Func, typename... Args>
-        void dfs(size_t start, Func func, Args&&... args) const {
-            start--;
-            std::vector<bool> used(count_verts_, false);
-            std::vector<size_t> order;
-            std::stack<size_t> s;
-            order.reserve(count_verts_);
-
-            used[start] = true;
-            s.push(start);
-            while (!s.empty()) {
-                size_t v = s.top();
-                s.pop();
-                order.push_back(v);
-
-                for (auto i : range_traversal_neighbors(*this, v)) {
-                    size_t next = i.second.index;
-                    if (!used[next]) {
-                        used[next] = true;
-                        s.push(next);
-                    }
-                }
-            }
-
-            for (auto v : std::views::reverse(order))
-                func(v, std::forward<Args>(args)...);
+        range_children_t get_range_children(size_t u) {
+            return range_children_t{*this, u};
         }
 
-        template <typename Func, typename... Args>
-        void bfs(size_t start, Func func, Args&&... args) const {
-            start--;
-            
-            std::vector<bool> used(count_verts_, false);
-            std::vector<size_t> order;
-            std::queue<size_t> q;
-
-            used[start] = true;
-            q.push(start);
-
-            while (!q.empty()) {
-                size_t v = q.front();
-                q.pop();
-                order.push_back(v);
-
-                for (auto i : range_traversal_neighbors(*this, v)) {
-                    size_t next = i.second.index;
-                    if (!used[next]) {
-                        used[next] = true;
-                        q.push(next);
-                    }
-                }
-            }
-
-            for (auto v : order)
-                func(v, std::forward<Args>(args)...);
+        const_range_children_t get_range_children(size_t u) const {
+            return const_range_children_t{*this, u};
         }
 
-        std::tuple<bool, std::vector<int>, std::vector<int>> get_bipartite() const {
-            std::vector<int> colors (count_verts_, -1);
-            std::vector<int> parents(count_verts_, -1);
-            std::queue<size_t> q;
-        
-            for (auto v : std::views::iota(0UL, count_verts_)) {
-                if (colors[v] == -1) {
-                    q.push(v);
-                    colors[v] = 0;
-        
-                    while (!q.empty()) {
-                        size_t u = q.front();
-                        q.pop();
+        size_t count_verts() const noexcept { return count_verts_; }
+    };
 
-                        for (auto i : range_traversal_neighbors(*this, u)) {
-                            size_t next = i.second.index;
-                            if (colors[next] == -1) {
-                                colors[next] = !colors[u];
-                                parents[next] = u;
-                                q.push(next);
-                            } else if (colors[next] == colors[u]) {
-                                return {false, {}, get_odd_cycle(u, next, parents)};
-                            }
+    template <typename GraphT, typename Func, typename... Args>
+    inline void do_dfs(const GraphT& graph, size_t start, Func func, Args&&... args) {
+        start--;
+        size_t count_verts = graph.count_verts();
+        std::vector<bool> used(count_verts, false);
+        std::vector<size_t> order;
+        std::stack<size_t> s;
+        order.reserve(count_verts);
+
+        used[start] = true;
+        s.push(start);
+        while (!s.empty()) {
+            size_t v = s.top();
+            s.pop();
+            order.push_back(v);
+
+            for (auto i : graph.get_range_children(v)) {
+                size_t next = i.second.index;
+                if (!used[next]) {
+                    used[next] = true;
+                    s.push(next);
+                }
+            }
+        }
+
+        for (auto v : std::views::reverse(order))
+            std::invoke(func, v, args...);
+    }
+
+    template <typename GraphT, typename Func, typename... Args>
+    inline void do_bfs(const GraphT& graph, size_t start, Func func, Args&&... args) {
+        start--;
+        std::vector<bool> used(graph.count_verts(), false);
+        std::vector<size_t> order;
+        std::queue<size_t> q;
+
+        used[start] = true;
+        q.push(start);
+
+        while (!q.empty()) {
+            size_t v = q.front();
+            q.pop();
+            order.push_back(v);
+
+            for (auto i : graph.get_range_children(v)) {
+                size_t next = i.second.index;
+                if (!used[next]) {
+                    used[next] = true;
+                    q.push(next);
+                }
+            }
+        }
+
+        for (auto v : order)
+            std::invoke(func, v, args...);
+    }
+
+    inline std::vector<size_t> get_odd_cycle(size_t u, size_t v, size_t count_verts, std::span<int> parents) {
+        if (u == v)
+            return std::vector(3, u);
+
+        std::vector<bool> visited(count_verts, false);
+        std::vector<size_t> cycle;
+
+        for (int i = u; i != -1; i = parents[i])
+            visited[i] = true;
+
+        int lsa = -1;
+        for (int i = v; i != -1; i = parents[i]) {
+            cycle.push_back(i + 1);
+            if (visited[i]) {
+                lsa = i;
+                break;
+            }
+        }
+
+        std::reverse(cycle.begin(), cycle.end());
+        while (static_cast<int>(u) != lsa) {
+            cycle.push_back(u + 1);
+            u = parents[u];
+        }
+
+        return cycle;
+    }
+
+    template <typename GraphT>
+    inline std::tuple<bool, std::vector<int>, std::vector<size_t>> get_bipartite(const GraphT& graph) {
+        size_t count_verts = graph.count_verts();
+        std::vector<int> colors (count_verts, -1);
+        std::vector<int> parents(count_verts, -1);
+        std::queue<size_t> q;
+
+        for (auto v : std::views::iota(0UL, count_verts)) {
+            if (colors[v] == -1) {
+                q.push(v);
+                colors[v] = 0;
+    
+                while (!q.empty()) {
+                    size_t u = q.front();
+                    q.pop();
+
+                    for (auto i : graph.get_range_children(u)) {
+                        size_t next = i.second.index;
+                        if (colors[next] == -1) {
+                            colors[next] = !colors[u];
+                            parents[next] = u;
+                            q.push(next);
+                        } else if (colors[next] == colors[u]) {
+                            return {false, {}, get_odd_cycle(u, next, count_verts, parents)};
                         }
                     }
                 }
             }
-        
-            return {true, colors, {}};
         }
-    };
+        return {true, colors, {}};
+    }
 
     template <typename VertexT = std::monostate, typename EdgeT = std::monostate>
     inline std::istream& operator>>(std::istream& is, graph_t<VertexT, EdgeT>& graph) {

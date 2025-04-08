@@ -5,6 +5,18 @@
 #include <fstream>
 #include <vector>
 
+template <typename T>
+void assert_vectors_eq(const std::vector<T>& expected, const std::vector<T>& actual) {
+    ASSERT_EQ(expected.size(), actual.size());
+
+    for (size_t i = 0; i < expected.size(); ++i)
+        EXPECT_EQ(expected[i], actual[i]) << "at index " << i << '\n';
+}
+
+void create_path(int v, std::vector<int>& path) {
+    path.push_back(v);
+}
+
 std::vector<std::string> get_sorted_files(std::filesystem::path path) {
     std::vector<std::string> files;
 
@@ -31,7 +43,7 @@ TEST(Graph_shuffle, cmp_ete_with_core) {
         std::ifstream test_file(tests_str[i]);
         graph::graph_t<std::monostate, int> graph;
         test_file >> graph;
-        const auto&[is_bipartite, colors, cycle] = graph.get_bipartite();
+        const auto&[is_bipartite, colors, cycle] = get_bipartite(graph);
         test_file.close();
 
         std::ifstream answer_file(answers_str[i]);
@@ -74,30 +86,30 @@ TEST(Graph_main, test_bipartite_true) {
     graph::graph_t graph23{{3, 4}};
     graph::graph_t graph24{{1, 3}, {2, 3}, {2, 4}};
 
-    EXPECT_EQ(std::get<0>(graph1.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph2.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph3.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph4.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph5.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph6.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph7.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph8.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph9.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph10.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph11.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph12.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph13.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph14.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph15.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph16.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph17.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph18.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph19.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph20.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph21.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph22.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph23.get_bipartite()), true);
-    EXPECT_EQ(std::get<0>(graph24.get_bipartite()), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph1)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph2)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph3)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph4)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph5)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph6)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph7)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph8)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph9)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph10)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph11)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph12)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph13)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph14)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph15)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph16)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph17)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph18)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph19)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph20)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph21)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph22)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph23)), true);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph24)), true);
 }
 
 TEST(Graph_main, test_bipartite_false) {
@@ -109,20 +121,19 @@ TEST(Graph_main, test_bipartite_false) {
     graph::graph_t graph6{{1, 3}, {2, 3}, {2, 4}, {3, 4}};
     graph::graph_t graph7{{2, 3}, {2, 4}, {3, 4}};
 
-    EXPECT_EQ(std::get<0>(graph1.get_bipartite()), false);
-    EXPECT_EQ(std::get<0>(graph2.get_bipartite()), false);
-    EXPECT_EQ(std::get<0>(graph3.get_bipartite()), false);
-    EXPECT_EQ(std::get<0>(graph4.get_bipartite()), false);
-    EXPECT_EQ(std::get<0>(graph6.get_bipartite()), false);
-    EXPECT_EQ(std::get<0>(graph7.get_bipartite()), false);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph1)), false);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph2)), false);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph3)), false);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph4)), false);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph6)), false);
+    EXPECT_EQ(std::get<0>(get_bipartite(graph7)), false);
 
-    EXPECT_EQ(std::get<2>(graph1.get_bipartite()).size() % 2, 1);
-    EXPECT_EQ(std::get<2>(graph2.get_bipartite()).size() % 2, 1);
-    EXPECT_EQ(std::get<2>(graph3.get_bipartite()).size() % 2, 1);
-    EXPECT_EQ(std::get<2>(graph4.get_bipartite()).size() % 2, 1);
-    EXPECT_EQ(std::get<2>(graph6.get_bipartite()).size() % 2, 1);
-    EXPECT_EQ(std::get<2>(graph7.get_bipartite()).size() % 2, 1);
-
+    EXPECT_EQ(std::get<2>(get_bipartite(graph1)).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph2)).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph3)).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph4)).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph6)).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph7)).size() % 2, 1);
 }
 
 TEST(Graph_main, test_bipartite_cycle) {
@@ -131,14 +142,32 @@ TEST(Graph_main, test_bipartite_cycle) {
     graph::graph_t graph2{{1, 2}, {1, 4}, {2, 3}, {3, 6}, {4, 5}, {4, 7}, {5, 6}, {6, 9}, {7, 8}, {8, 9},
                           {2, 4}};
 
-    EXPECT_EQ(std::get<2>(graph1.get_bipartite()).size() % 2, 1);
-    EXPECT_EQ(std::get<2>(graph2.get_bipartite()).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph1)).size() % 2, 1);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph2)).size() % 2, 1);
 }
 
 TEST(Graph_main, test_cycle_self_enclosed_vertex) {
     graph::graph_t graph1{{1, 1}};
 
-    EXPECT_EQ(std::get<2>(graph1.get_bipartite()).size(), 3);
+    EXPECT_EQ(std::get<2>(get_bipartite(graph1)).size(), 3);
+}
+
+TEST(Graph_dfs, test_simple_dfs) {
+    graph::graph_t graph{{1, 2}, {1, 3}, {2, 4}, {3, 4}};
+
+    std::vector<int> ans;
+    do_dfs(graph, 1, create_path, ans);
+
+    assert_vectors_eq(ans, {1, 3, 2, 0});
+}
+
+TEST(Graph_bfs, test_simple_bfs) {
+    graph::graph_t graph{{1, 2}, {1, 3}, {2, 4}, {3, 4}};
+    
+    std::vector<int> ans;
+    do_bfs(graph, 2, create_path, ans);
+
+    assert_vectors_eq(ans, {1, 0, 3 ,2});
 }
 
 int main(int argc, char **argv) {
