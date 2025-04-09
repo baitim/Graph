@@ -5,7 +5,7 @@ int main() try {
     graph::graph_t<std::monostate, int> graph;
     std::cin >> graph;
 
-    const auto&[is_bipartite, colors, cycle] = get_bipartite(graph);
+    auto&& [is_bipartite, colors, cycle] = get_bipartite(graph);
 
     if (!is_bipartite) {
         std::cout << "graph is not bipartite, odd cycle:\n";
