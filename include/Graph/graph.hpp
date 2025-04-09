@@ -51,7 +51,6 @@ namespace graph {
         node_buffer_t buffer_nodes_;
         std::vector<node_base_t*> nodes_;
         std::vector<size_t> next_;
-        std::vector<size_t> prev_;
 
     private:
         struct vertex_node_t final : public node_base_t {
@@ -153,11 +152,6 @@ namespace graph {
                 index_ = graph_->next_[index_];
                 return *this;
             }
-
-            internal_iterator_t& operator--() noexcept {
-                index_ = graph_->prev_[index_];
-                return *this;
-            }
         };
 
         using       iterator_t = internal_iterator_t<false>;
@@ -243,7 +237,6 @@ namespace graph {
         void resize(size_t summary_count) {
             nodes_.resize(summary_count);
             next_.resize(summary_count);
-            prev_.resize(summary_count);
             default_fill_vertices(count_verts_);
         }
 
@@ -265,17 +258,15 @@ namespace graph {
                     next_[curr_idx[current]] = idx;
                     next_[curr_idx[child  ]] = idx + 1;
 
-                    prev_[curr_idx[current]] = std::exchange(curr_idx[current], idx);
-                    prev_[curr_idx[child  ]] = std::exchange(curr_idx[child  ], idx + 1);
+                    curr_idx[current] = idx;
+                    curr_idx[child  ] = idx + 1;
 
                     idx += 2;
                 }
             }
 
-            for (auto i : std::views::iota(0UL, count_verts_)) {
+            for (auto i : std::views::iota(0UL, count_verts_))
                 next_[curr_idx[i]] = i;
-                prev_[i] = curr_idx[i];
-            }
         }
 
         template <typename EdgeListT>
@@ -348,11 +339,6 @@ namespace graph {
             os << print_blue("n:\t");
             for (auto next : next_)
                 os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(next) << '\t';
-            os << '\n';
-
-            os << print_blue("p:\t");
-            for (auto prev : prev_)
-                os << std::setw(LENGTH_OF_OUTPUT_NUMBERS) << print_lcyan(prev) << '\t';
 
             return os;
         }
