@@ -50,7 +50,6 @@ class graphRecipe(ConanFile):
             os.remove(cmake_user_presets)
 
     def build(self):
-        os.environ["CONAN_PACKAGE"] = "1"
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
