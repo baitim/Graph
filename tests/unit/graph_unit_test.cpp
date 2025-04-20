@@ -156,7 +156,8 @@ TEST(Graph_dfs, test_simple_dfs) {
     graph::graph_t graph{{1, 2}, {1, 3}, {2, 4}, {3, 4}};
 
     std::vector<int> ans;
-    do_dfs(graph, 1, create_path, ans);
+    graph::graph_t<>::const_iterator_t iter{graph, 0};
+    do_dfs(graph, iter, create_path, ans);
 
     assert_vectors_eq(ans, {1, 3, 2, 0});
 }
@@ -165,7 +166,8 @@ TEST(Graph_bfs, test_simple_bfs) {
     graph::graph_t graph{{1, 2}, {1, 3}, {2, 4}, {3, 4}};
     
     std::vector<int> ans;
-    do_bfs(graph, 2, create_path, ans);
+    graph::graph_t<>::const_iterator_t iter{graph, 1};
+    do_bfs(graph, iter, create_path, ans);
 
     assert_vectors_eq(ans, {1, 3, 0 ,2});
 }

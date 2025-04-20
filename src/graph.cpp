@@ -1,9 +1,24 @@
 #include "Graph/graph.hpp"
 
-int main() try {
+#if defined(WITH_DFS) || defined(WITH_BFS)
+void print_int(int i, std::ostream& os) {
+    os << i << "\n";
+}
+#endif
 
-    graph::graph_t<std::monostate, int> graph;
+int main() try {
+    using Graph = graph::graph_t<std::monostate, int>;
+    Graph graph;
     std::cin >> graph;
+
+#if defined(WITH_DFS) || defined(WITH_BFS)
+    Graph::const_iterator_t iter{graph, 0};
+    #ifdef WITH_BFS
+        do_bfs(graph, iter, print_int, std::cout);
+    #else
+        do_dfs(graph, iter, print_int, std::cout);
+    #endif
+#endif
 
     auto&& [is_bipartite, colors, cycle] = get_bipartite(graph);
 

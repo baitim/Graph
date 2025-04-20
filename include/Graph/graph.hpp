@@ -82,6 +82,8 @@ namespace graph {
             internal_iterator_t(graph_type& graph, size_t index)
             : graph_(&graph), index_(index), count_verts_(graph.count_verts()) {}
 
+            size_t index() const noexcept { return index_; }
+
             reference operator*() const {
                 size_t e_index = index_ - count_verts_;
                 size_t vertex = graph_->edges_[e_index];
@@ -333,17 +335,18 @@ namespace graph {
     };
 
     template <typename GraphT, typename Func, typename... Args>
-    inline void do_dfs(const GraphT& graph, size_t start, Func func, Args&&... args) {
+    inline void do_dfs(const GraphT& graph, typename GraphT::const_iterator_t start,
+                       Func func, Args&&... args) {
         std::stack<size_t> s;
 
-        start--;
         size_t count_verts = graph.count_verts();
         std::vector<bool> used(count_verts, false);
         std::vector<size_t> order;
         order.reserve(count_verts);
 
-        used[start] = true;
-        s.push(start);
+        size_t start_index = start.index();
+        used[start_index] = true;
+        s.push(start_index);
         while (!s.empty()) {
             size_t v = s.top();
             s.pop();
@@ -363,17 +366,18 @@ namespace graph {
     }
 
     template <typename GraphT, typename Func, typename... Args>
-    inline void do_bfs(const GraphT& graph, size_t start, Func func, Args&&... args) {
+    inline void do_bfs(const GraphT& graph, typename GraphT::const_iterator_t start,
+                       Func func, Args&&... args) {
         std::queue<size_t> q;
 
-        start--;
         size_t count_verts = graph.count_verts();
         std::vector<bool> used(count_verts, false);
         std::vector<size_t> order;
         order.reserve(count_verts);
 
-        used[start] = true;
-        q.push(start);
+        size_t start_index = start.index();
+        used[start_index] = true;
+        q.push(start_index);
         while (!q.empty()) {
             size_t v = q.front();
             q.pop();
