@@ -216,23 +216,27 @@ namespace graph {
                 next_[curr_idx[i]] = i;
         }
 
+        void add_edge(building_list_of_edges_t& edges, size_t v1, size_t v2, EdgeT data = {}) {
+            check_vertex_indexes(v1--, v2--);
+            count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
+            edges[v1].emplace_back(v2, data);
+        }
+
+        template <typename TupleT>
+        void dispatch_edge_to_add(building_list_of_edges_t& edges, TupleT&& edge) {
+            std::apply(
+                [&](auto&&... args) {
+                    add_edge(edges, std::forward<decltype(args)>(args)...);
+                },
+                edge
+            );
+        }
+
         template <typename EdgeListT>
         void init_from_edges(const EdgeListT& edges_list) {
             building_list_of_edges_t edges;
-            for (auto&& edge : edges_list) {
-                size_t v1, v2;
-                EdgeT weight{};
-
-                if constexpr (std::tuple_size_v<std::decay_t<decltype(edge)>> == 2) {
-                    std::tie(v1, v2) = edge;
-                } else {
-                    std::tie(v1, v2, weight) = edge;
-                }
-
-                check_vertex_indexes(v1--, v2--);
-                count_verts_ = std::max(count_verts_, 1 + std::max(v1, v2));
-                edges[v1].emplace_back(v2, weight);
-            }
+            for (auto&& edge : edges_list)
+                dispatch_edge_to_add(edges, edge);
             count_edges_ = edges_list.size();
             create(edges);
         }
