@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Graph/common.hpp"
+
 #include <algorithm>
 #include <functional>
 #include <iomanip>
@@ -11,14 +12,11 @@
 #include <ranges>
 #include <stack>
 #include <utility>
-#include <variant>
 #include <vector>
 
 namespace graph {
     template <typename VertexT = std::monostate, typename EdgeT = std::monostate>
     class graph_t final {
-        static constexpr size_t LENGTH_OF_OUTPUT_NUMBERS = 4;
-
         using edge_t = std::tuple<size_t, size_t, EdgeT>;
         using building_list_of_edges_t = std::unordered_map<size_t, std::vector<std::pair<size_t, EdgeT>>>;
 
@@ -32,12 +30,14 @@ namespace graph {
         std::vector<size_t>  next_;
 
     private:
-        template <bool IsConst>
+        template <bool IsConstData>
         class iterator_data_t final {
-            using vertex_value   = std::conditional_t<IsConst, const VertexT, VertexT>;
-            using edge_value     = std::conditional_t<IsConst, const EdgeT,   EdgeT>;
-            using vertex_pointer = std::conditional_t<IsConst, const VertexT*, VertexT*>;
-            using edge_pointer   = std::conditional_t<IsConst, const EdgeT*,   EdgeT*>;
+            using vertex_value     = std::conditional_t<IsConstData, const VertexT,  VertexT>;
+            using edge_value       = std::conditional_t<IsConstData, const EdgeT,    EdgeT>;
+            using vertex_reference = vertex_value&;
+            using edge_reference   = edge_value&;
+            using vertex_pointer   = vertex_value*;
+            using edge_pointer     = edge_value*;
 
             vertex_pointer vertex_;
             edge_pointer   edge_;
@@ -47,8 +47,8 @@ namespace graph {
             iterator_data_t(vertex_value& vertex, edge_value& edge, size_t index)
             : vertex_(&vertex), edge_(&edge), index_(index) {}
 
-            vertex_value& vertex() const { return *vertex_; }
-            edge_value&   edge()   const { return *edge_; }
+            vertex_reference vertex() const { return *vertex_; }
+            edge_reference   edge()   const { return *edge_; }
 
             size_t index() const noexcept { return index_;}
         };
@@ -68,9 +68,9 @@ namespace graph {
 
         private:
             using graph_type        = std::conditional_t<IsConst, const graph_t,  graph_t>;
-            using iterator_category = std::bidirectional_iterator_tag;
-            using value_type        = iterator_data_t<false>;
-            using reference         = iterator_data_t<true>;
+            using iterator_category = std::forward_iterator_tag;
+            using value_type        = iterator_data_t<true>;
+            using reference         = iterator_data_t<IsConst>;
             using pointer           = arrow_proxy<reference>;
             using difference_type   = std::ptrdiff_t;
 
@@ -167,8 +167,7 @@ namespace graph {
             check_vertex_indexes(v1_, v2_);
 
             EdgeT w_;
-            if constexpr(!std::is_same_v<EdgeT, std::monostate> &&
-                         has_input_operator<EdgeT>::value) {
+            if constexpr(not_monostate<EdgeT> && has_input_operator<EdgeT>) {
                 is >> comma >> w_;
                 if (!is.good())   throw error_t{"Invalid edge info"};
                 if (comma != ',') throw error_t{"Invalid input: expected comma, read: " + comma};
@@ -284,6 +283,8 @@ namespace graph {
         }
 
         std::ostream& print(std::ostream& os) const {
+            constexpr size_t LENGTH_OF_OUTPUT_NUMBERS = 4;
+
             os << print_blue("graph\n");
 
             os << print_blue("index:\t");
@@ -293,8 +294,7 @@ namespace graph {
 
             os << print_blue("v_data:\t");
             for (auto v_data : v_data_) {
-                if constexpr(!std::is_same_v<VertexT, std::monostate> &&
-                             has_output_operator<VertexT>::value)
+                if constexpr(not_monostate<VertexT> && has_output_operator<VertexT>)
                     os << print_lcyan(v_data);
                 else
                     os << print_lcyan('-');
@@ -304,8 +304,7 @@ namespace graph {
 
             os << print_blue("e_data:\t");
             for (auto e_data : e_data_) {
-                if constexpr(!std::is_same_v<EdgeT, std::monostate> &&
-                             has_output_operator<EdgeT>::value)
+                if constexpr(not_monostate<EdgeT> && has_output_operator<EdgeT>)
                     os << print_lcyan(e_data);
                 else
                     os << print_lcyan('-');
@@ -340,7 +339,7 @@ namespace graph {
 
     template <typename GraphT, typename Func, typename... Args>
     inline void do_dfs(const GraphT& graph, typename GraphT::const_iterator_t start,
-                       Func func, Args&&... args) {
+                       Func&& func, Args&&... args) {
         std::stack<size_t> s;
 
         size_t count_verts = graph.count_verts();
@@ -366,12 +365,12 @@ namespace graph {
         }
 
         for (auto v : std::views::reverse(order))
-            std::invoke(func, v, args...);
+            std::invoke(std::forward<Func>(func), v, std::forward<Args>(args)...);
     }
 
     template <typename GraphT, typename Func, typename... Args>
     inline void do_bfs(const GraphT& graph, typename GraphT::const_iterator_t start,
-                       Func func, Args&&... args) {
+                       Func&& func, Args&&... args) {
         std::queue<size_t> q;
 
         size_t count_verts = graph.count_verts();
@@ -397,7 +396,7 @@ namespace graph {
         }
 
         for (auto v : order)
-            std::invoke(func, v, args...);
+            std::invoke(std::forward<Func>(func), v, std::forward<Args>(args)...);
     }
 
     inline std::vector<size_t> get_odd_cycle(size_t u, size_t v, size_t count_verts,
