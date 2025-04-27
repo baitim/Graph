@@ -251,17 +251,20 @@ namespace graph {
             init_from_edges(edges);
         }
 
-        void set_vertex_info(size_t index, const VertexT& info) {
+        void set_vertex_info(iterator_t iterator, const VertexT& info) {
+            size_t index = iterator.index();
             check_vertex_index(index);
             v_data_[index] = info;
         }
 
-        void set_vertex_info(size_t index, VertexT&& info) {
+        void set_vertex_info(iterator_t iterator, VertexT&& info) {
+            size_t index = iterator.index();
             check_vertex_index(index);
             v_data_[index] = std::move(info);
         }
 
-        const VertexT& get_vertex_info(size_t index) const {
+        const VertexT& get_vertex_info(const_iterator_t iterator) const {
+            size_t index = iterator.index();
             check_vertex_index(index);
             return e_data_[index]->data;
         }
@@ -326,12 +329,12 @@ namespace graph {
             return os;
         }
 
-        range_children_t get_range_children(size_t u) {
-            return range_children_t{*this, u};
+        range_children_t get_range_children(iterator_t iterator) {
+            return range_children_t{*this, iterator.index()};
         }
 
-        const_range_children_t get_range_children(size_t u) const {
-            return const_range_children_t{*this, u};
+        const_range_children_t get_range_children(const_iterator_t iterator) const {
+            return const_range_children_t{*this, iterator.index()};
         }
 
         size_t count_verts() const noexcept { return count_verts_; }
@@ -355,7 +358,7 @@ namespace graph {
             s.pop();
             order.push_back(v);
 
-            for (auto i : graph.get_range_children(v)) {
+            for (auto i : graph.get_range_children({graph, v})) {
                 size_t next = i.index();
                 if (!used[next]) {
                     used[next] = true;
@@ -386,7 +389,7 @@ namespace graph {
             q.pop();
             order.push_back(v);
 
-            for (auto i : graph.get_range_children(v)) {
+            for (auto i : graph.get_range_children({graph, v})) {
                 size_t next = i.index();
                 if (!used[next]) {
                     used[next] = true;
@@ -452,7 +455,7 @@ namespace graph {
                     size_t u = q.front();
                     q.pop();
 
-                    for (auto i : graph.get_range_children(u)) {
+                    for (auto i : graph.get_range_children({graph, u})) {
                         size_t next = i.index();
                         if (colors[next] == -1) {
                             colors[next] = !colors[u];
